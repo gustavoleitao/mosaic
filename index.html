@@ -226,7 +226,7 @@
             const maxDimension = Math.max(rows, cols);
 
             // Ajusta a posição da câmera para visualizar todo o mosaico
-            const distanceFactor = .8; // Fator para ajustar a distância da câmera
+            const distanceFactor = .5; // Fator para ajustar a distância da câmera
             camera.position.set(centerX, maxDimension * distanceFactor, centerZ + maxDimension * distanceFactor);
             camera.lookAt(centerX, 0, centerZ);
 
