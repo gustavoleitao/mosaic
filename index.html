@@ -214,9 +214,22 @@
                 }
             }
 
-               // Posicionando a câmera
-               camera.position.set(3, 4, 10);
-            camera.lookAt(0, 0, 0);
+            // Calcula o centro do mosaico
+            const centerX = (cols * (cubeWidth + gap)) / 2;
+            const centerZ = (rows * (cubeDepth + gap)) / 2;
+
+            // Ajusta o ponto de rotação da câmera para o centro do mosaico
+            controls.target.set(centerX - (cubeWidth + gap) / 2, 0, centerZ - (cubeDepth + gap) / 2);
+            controls.update();
+
+            // Calcula a maior dimensão entre linhas e colunas
+            const maxDimension = Math.max(rows, cols);
+
+            // Ajusta a posição da câmera para visualizar todo o mosaico
+            const distanceFactor = .8; // Fator para ajustar a distância da câmera
+            camera.position.set(centerX, maxDimension * distanceFactor, centerZ + maxDimension * distanceFactor);
+            camera.lookAt(centerX, 0, centerZ);
+
         }
 
         // Função de renderização
@@ -279,6 +292,9 @@
 
             // Criar o mosaico de cubos com os valores inseridos
             createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
+
+      
+
         });
 
         // Gera a cena inicial ao carregar
