@@ -16,6 +16,13 @@
             border-radius: 5px;
             z-index: 1;
         }
+
+        #showHide {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
@@ -48,17 +55,44 @@
             <label for="texture2">Madeira de Freixo</label><br>
             <input type="checkbox" id="texture3" name="textures" value="https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg">
             <label for="texture3">Madeira Queimada</label><br><br>
+
+            <label for="useSubpattern">Usar Subpadrão:</label>
+            <input type="checkbox" id="useSubpattern" name="useSubpattern"><br><br>
+
+            <label for="subpatternSize">Tamanho do Subpadrão:</label>
+            <input type="number" id="subpatternSize" name="subpatternSize" value="2" min="1" disabled><br><br>
             
             <button type="submit">Gerar Mosaico</button>
+            
         </form>
+
 
         <button id="exportMap">Exportar Mapa (JSON)</button><br><br>
         <input type="file" id="importMap" accept=".json">
+
+      
     </div>
+    <div id="showHide"> 
+        <button id="togglePanel">Esconder Controles</button>
+    </div>
+    
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script>
+
+    const controlPanel = document.getElementById('controls');
+        const toggleButton = document.getElementById('togglePanel');
+        
+        toggleButton.addEventListener('click', function() {
+            if (controlPanel.style.display === 'none') {
+                controlPanel.style.display = 'block';
+                toggleButton.textContent = 'Esconder Controles';
+            } else {
+                controlPanel.style.display = 'none';
+                toggleButton.textContent = 'Mostrar Controles';
+            }
+        });
 
         const cache = {};
         let currentMosaic = [];
@@ -99,16 +133,14 @@
             return values[randomIndex];
         }
 
-        // Função para criar cubo de madeira aleatória com altura aleatória
-        function getRandomWoodCube(width, depth, heights, textures, row, col){
-            const height = randomFromValues(heights);
-            const randomTexture = randomFromValues(textures);
-            const myCube = cube(width, height, depth, randomTexture);
+        // Função para criar cubo de madeira com altura e textura definidas
+        function createWoodCube(width, depth, height, texture, row, col) {
+            const myCube = cube(width, height, depth, texture);
 
             // Posicionar o cubo de modo que sua base fique em Y=0 (plano de base)
             myCube.position.y = height / 2;  // Ajusta para que a base do cubo fique alinhada no eixo Y
 
-            currentMosaic.push({ row, col, height, texture: randomTexture }); // Salva o cubo no mapa
+            currentMosaic.push({ row, col, height, texture }); // Salva o cubo no mapa
 
             return myCube;
         }
@@ -125,8 +157,23 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
 
+        // Função para criar subpadrão
+        function createSubpattern(subpatternSize, heights, textures) {
+            const subpattern = [];
+            for (let i = 0; i < subpatternSize; i++) {
+                const row = [];
+                for (let j = 0; j < subpatternSize; j++) {
+                    const height = randomFromValues(heights);
+                    const texture = randomFromValues(textures);
+                    row.push({ height, texture });
+                }
+                subpattern.push(row);
+            }
+            return subpattern;
+        }
+
         // Função para criar a malha de cubos com base nas entradas do usuário
-        function createMosaic(rows, cols, heights, textures) {
+        function createMosaic(rows, cols, heights, textures, useSubpattern = false, subpatternSize = 2) {
             currentMosaic = []; // Limpar o mapa atual
 
             // Remover todos os cubos antigos da cena
@@ -138,10 +185,28 @@
             const cubeDepth = 1;
             const gap = 0.01;  // Distância entre os cubos
 
-            // Criando a malha de cubos
+            let subpattern;
+            if (useSubpattern) {
+                subpattern = createSubpattern(subpatternSize, heights, textures); // Cria o subpadrão
+            }
+
             for (let i = 0; i < rows; i++) {
                 for (let j = 0; j < cols; j++) {
-                    const cube = getRandomWoodCube(cubeWidth, cubeDepth, heights, textures, i, j);
+                    let cube;
+
+                    if (useSubpattern) {
+                        // Obter o subpadrão baseado nas coordenadas atuais
+                        const subRow = i % subpatternSize;
+                        const subCol = j % subpatternSize;
+                        const { height, texture } = subpattern[subRow][subCol];
+
+                        cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
+                    } else {
+                        const height = randomFromValues(heights);
+                        const texture = randomFromValues(textures);
+                        cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
+                    }
+
                     const xPosition = j * (cubeWidth + gap);
                     const zPosition = i * (cubeDepth + gap);
                     cube.position.set(xPosition, cube.position.y, zPosition);
@@ -149,8 +214,8 @@
                 }
             }
 
-            // Posicionando a câmera
-            camera.position.set(3, 4, 10);
+               // Posicionando a câmera
+               camera.position.set(3, 4, 10);
             camera.lookAt(0, 0, 0);
         }
 
@@ -170,6 +235,12 @@
             renderer.setSize(width, height);
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
+        });
+
+        // Habilitar ou desabilitar o campo de tamanho do subpadrão
+        document.getElementById('useSubpattern').addEventListener('change', function() {
+            const subpatternSizeInput = document.getElementById('subpatternSize');
+            subpatternSizeInput.disabled = !this.checked;
         });
 
         // Função para processar o formulário
@@ -198,12 +269,20 @@
                 return;
             }
 
+            // Verificar se o subpadrão foi selecionado
+            const useSubpattern = document.getElementById('useSubpattern').checked;
+            let subpatternSize = parseInt(document.getElementById('subpatternSize').value);
+
+            if (isNaN(subpatternSize) || subpatternSize < 1) {
+                subpatternSize = 2; // Valor padrão caso seja inválido
+            }
+
             // Criar o mosaico de cubos com os valores inseridos
-            createMosaic(rows, cols, selectedHeights, selectedTextures);
+            createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
         });
 
-                // Gera a cena inicial ao carregar
-                createMosaic(10, 30, [0.5, 1], [
+        // Gera a cena inicial ao carregar
+        createMosaic(10, 30, [0.5, 1], [
             'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg',
             'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg',
             'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg'
@@ -244,13 +323,13 @@
 
             const cubeWidth = 1;
             const cubeDepth = 1;
-            const gap = 0.005;
+            const gap = 0.01;
 
             // Adicionar cubos a partir do mapa importado
             mosaicMap.forEach(cubeData => {
-                const myCube = cube(cubeWidth, cubeData.height, cubeDepth, cubeData.texture);
-                myCube.position.set(cubeData.col * (cubeWidth + gap), cubeData.height / 2, cubeData.row * (cubeDepth + gap));
-                scene.add(myCube);
+                const cube = cube(cubeWidth, cubeData.height, cubeDepth, cubeData.texture);
+                cube.position.set(cubeData.col * (cubeWidth + gap), cubeData.height / 2, cubeData.row * (cubeDepth + gap));
+                scene.add(cube);
             });
 
             // Reposicionar a câmera
