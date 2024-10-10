@@ -164,6 +164,13 @@
             <label for="subpatternSize">Tamanho do Subpadrão:</label>
             <input type="number" id="subpatternSize" name="subpatternSize" value="4" min="1" disabled><br>
 
+            <h2>Opções Avançadas</h2>
+            <label for="irregularBorders">Bordas Irregulares Recursivas:</label>
+            <input type="checkbox" id="irregularBorders" name="irregularBorders"><br>
+            
+            <label for="suppressionProbability">Probabilidade de Supressão de Borda (0.30 - 0.60):</label>
+            <input type="number" id="suppressionProbability" name="suppressionProbability" value="0.30" min="0.30" max="0.60" step="0.01">
+
             <hr>
 
             <button type="submit">Gerar Mosaico</button>
@@ -210,6 +217,31 @@
         };
 
         const texturesPaths = Object.keys(textureNames);
+
+        function shouldSuppressEdge(probability) {
+            return Math.random() < probability;
+        }
+
+        function removeEdges(mosaic, rows, cols, probability, row = 0, col = 0) {
+            const isEdge = row === 0 || col === 0 || row === rows - 1 || col === cols - 1;
+
+            if (isEdge && shouldSuppressEdge(probability)) {
+                // Remove o cubo da cena
+                const cubeToRemove = scene.getObjectByName(`cube-${row}-${col}`);
+                if (cubeToRemove) {
+                    scene.remove(cubeToRemove);
+                }
+
+                // Marcar o bloco no mosaico como removido
+                mosaic[row][col] = null;
+
+                // Agora verifica os vizinhos que podem se tornar borda e aplica o teste recursivamente
+                if (row > 0) removeEdges(mosaic, rows, cols, probability, row - 1, col);  // Verifica acima
+                if (row < rows - 1) removeEdges(mosaic, rows, cols, probability, row + 1, col);  // Verifica abaixo
+                if (col > 0) removeEdges(mosaic, rows, cols, probability, row, col - 1);  // Verifica à esquerda
+                if (col < cols - 1) removeEdges(mosaic, rows, cols, probability, row, col + 1);  // Verifica à direita
+            }
+        }
 
         function countBlock(height, texture) {
             const textureName = textureNames[texture] || 'Desconhecido';
@@ -270,7 +302,10 @@
             // Posicionar o cubo de modo que sua base fique em Y=0 (plano de base)
             myCube.position.y = height / 2;  // Ajusta para que a base do cubo fique alinhada no eixo Y
 
-            currentMosaic.push({ row, col, height, texture }); // Salva o cubo no mapa
+            // Nomear o cubo para que possa ser removido posteriormente
+            myCube.name = `cube-${row}-${col}`;
+
+            currentMosaic.push({ row, col, height, texture });  // Salva o cubo no mapa
             countBlock(height, texture);  // Conta o bloco
             return myCube;
         }
@@ -410,12 +445,13 @@
 
         }
 
-        // Função para criar a malha de cubos com base nas entradas do usuário
         function createMosaic(rows, cols, heights, textures, useSubpattern = false, subpatternSize = 2) {
             blockCount = {}; // Limpar a contagem de blocos
             currentMosaic = []; // Limpar o mapa atual
             materialIds = {}; // Armazena os IDs sequenciais de cada tipo de material
             materialIdCounter = 1; // Inicializa o contador para os IDs
+
+            const mosaic = [];  // Estrutura que vai armazenar o mosaico gerado
 
             // Remover todos os cubos antigos da cena
             while (scene.children.length > 0) {
@@ -432,26 +468,36 @@
             }
 
             for (let i = 0; i < rows; i++) {
+                const rowArray = [];  // Array para armazenar a linha atual do mosaico
+
                 for (let j = 0; j < cols; j++) {
-                    let cube;
+                    let cube, height, texture;
 
                     if (useSubpattern) {
                         // Obter o subpadrão baseado nas coordenadas atuais
                         const subRow = i % subpatternSize;
                         const subCol = j % subpatternSize;
-                        const { height, texture } = subpattern[subRow][subCol];
-                        cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
+                        ({ height, texture } = subpattern[subRow][subCol]);
                     } else {
-                        const height = randomFromValues(heights);
-                        const texture = randomTextureFromUserParams();
-                        cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
+                        height = randomFromValues(heights);
+                        texture = randomTextureFromUserParams();
                     }
 
+                    // Adicionar o cubo ao mosaico, mas sem adicionar na cena ainda
+                    rowArray.push({ height, texture });
+
+                    // Criação do cubo
+                    cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
+
+                    // Adicionar o cubo à cena
                     const xPosition = j * (cubeWidth + gap);
                     const zPosition = i * (cubeDepth + gap);
                     cube.position.set(xPosition, cube.position.y, zPosition);
                     scene.add(cube);
                 }
+
+                // Adicionar a linha ao mosaico
+                mosaic.push(rowArray);
             }
 
             // Calcula o centro do mosaico
@@ -470,6 +516,7 @@
             camera.position.set(centerX, maxDimension * distanceFactor, centerZ + maxDimension * distanceFactor);
             camera.lookAt(centerX, 0, centerZ);
 
+            return mosaic;  // Agora a função retorna o mapa do mosaico
         }
 
         // Função de renderização
@@ -504,6 +551,9 @@
             const rows = parseInt(document.getElementById('rows').value);
             const cols = parseInt(document.getElementById('cols').value);
 
+            const useIrregularBorders = document.getElementById('irregularBorders').checked;
+            const suppressionProbability = parseFloat(document.getElementById('suppressionProbability').value);
+
             // Capturar as alturas selecionadas (checkboxes)
             const selectedHeights = Array.from(document.querySelectorAll('input[name="heights"]:checked'))
                 .map(input => parseFloat(input.value));
@@ -531,13 +581,21 @@
             }
 
             // Criar o mosaico de cubos com os valores inseridos
-            createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
+            const mosaic = createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
+
+            if (useIrregularBorders) {
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        // Inicie o processo de remoção nas bordas
+                        removeEdges(mosaic, rows, cols, suppressionProbability, row, col);
+                    }
+                }
+            }
 
         });
 
         // Gera a cena inicial ao carregar
         createMosaic(10, 30, [0.5, 1, 1.5, 2], texturesPaths);
-
 
         // Função para exportar o mosaico como JSON
         document.getElementById('exportMap').addEventListener('click', function () {
