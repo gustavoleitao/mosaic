@@ -66,12 +66,18 @@
         /* Conteúdo do modal */
         .modal-content {
             background-color: #fefefe;
-            margin: 15% auto;
-            /* Centralizado verticalmente */
             padding: 20px;
             border: 1px solid #888;
-            width: 100%;
-            /* Largura do modal */
+            width: auto;
+            /* Ajuste automático com base no conteúdo */
+            max-width: 90%;
+            /* Limita a largura a 90% da tela */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            overflow-x: auto;
+            /* Adiciona barra de rolagem horizontal, se necessário */
         }
 
         /* Botão de fechar */
@@ -130,18 +136,26 @@
             <label for="height6">5</label>
 
             <h2>Madeiras</h2>
+
             <input type="checkbox" id="texture1" name="textures"
-                value="https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg" checked>
-            <label for="texture1">Madeira de Pinus</label><br>
-            <input type="checkbox" id="texture2" name="textures"
                 value="https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg" checked>
-            <label for="texture2">Madeira de Freixo</label><br>
+            <label for="texture1">Madeira de Pinus</label>
+            <input type="number" id="texture1Weight" name="textureWeights" value="1" min="0" max="1" step="0.1"><br>
+
+            <input type="checkbox" id="texture2" name="textures"
+                value="https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg" checked>
+            <label for="texture2">Madeira de Carvalho</label>
+            <input type="number" id="texture2Weight" name="textureWeights" value="1" min="0" max="1" step="0.1"><br>
+
             <input type="checkbox" id="texture3" name="textures"
                 value="https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg" checked>
-            <label for="texture3">Madeira Queimada</label><br>
+            <label for="texture3">Madeira Queimada</label>
+            <input type="number" id="texture3Weight" name="textureWeights" value="1" min="0" max="1" step="0.1"><br>
+
             <input type="checkbox" id="texture4" name="textures"
                 value="https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg" checked>
             <label for="texture4">Dark Stained Timber</label>
+            <input type="number" id="texture4Weight" name="textureWeights" value="1" min="0" max="1" step="0.1">
 
             <h2>Subpadrões</h2>
             <label for="useSubpattern">Usar Subpadrão:</label>
@@ -189,8 +203,8 @@
         let blockCount = {};  // Armazena a quantidade de cada tipo de cubo
 
         const textureNames = {
-            'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg': 'Madeira de Pinus',
-            'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg': 'Madeira de Freixo',
+            'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg': 'Madeira de Pinus',
+            'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg': 'Madeira de Carvalho',
             'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg': 'Madeira Queimada',
             'https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg': 'Dark Stained Timber'
         };
@@ -339,11 +353,61 @@
                 for (let j = 0; j < subpatternSize; j++) {
                     const height = randomFromValues(heights);
                     const texture = randomFromValues(textures);
+
+                    randomFromValues
+
                     row.push({ height, texture });
                 }
                 subpattern.push(row);
             }
             return subpattern;
+        }
+
+        function selectWeightedTexture(textures, weights) {
+            // Primeiro, normalizamos os pesos para garantir que somem 1
+
+            const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+
+            const normalizedWeights = weights.map(weight => weight / totalWeight);
+
+            // Geramos um número aleatório entre 0 e 1
+            let random = Math.random();
+
+            // Vamos iterar sobre as texturas e subtrair os pesos acumulados até que o random caia em um intervalo
+            for (let i = 0; i < textures.length; i++) {
+                if (random < normalizedWeights[i]) {
+                    return textures[i];
+                }
+                random -= normalizedWeights[i];
+            }
+        }
+
+        function randomTextureFromUserParams() {
+
+            const allTextures = Array.from(document.querySelectorAll('input[name="textures"]')).map(input => input.value);
+
+            const selectedTextures = Array.from(document.querySelectorAll('input[name="textures"]'))
+                .filter(input => input.checked)
+                .map(input => input.value);
+
+            const statusTextures = Array.from(document.querySelectorAll('input[name="textures"]'))
+                .map(input => input.checked);
+
+            const selectedWeights = Array.from(document.querySelectorAll('input[name="textureWeights"]'))
+                .map((input, index) => {
+                    if (statusTextures[index] === false) {
+                        return 0;
+                    }
+                    return parseFloat(input.value)
+                });
+
+            if (selectedTextures.length === 0) {
+                alert("Por favor, selecione ao menos uma textura.");
+                return;
+            }
+
+            return selectWeightedTexture(allTextures, selectedWeights);
+
         }
 
         // Função para criar a malha de cubos com base nas entradas do usuário
@@ -376,11 +440,10 @@
                         const subRow = i % subpatternSize;
                         const subCol = j % subpatternSize;
                         const { height, texture } = subpattern[subRow][subCol];
-
                         cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
                     } else {
                         const height = randomFromValues(heights);
-                        const texture = randomFromValues(textures);
+                        const texture = randomTextureFromUserParams();
                         cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
                     }
 
