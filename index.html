@@ -676,7 +676,9 @@
         // Quando o usuário clica no botão, abre o modal
         btn.onclick = function () {
             generateBlockTable();  // Gera a tabela de materiais
-            generateMosaicTable(10, 30); // Substitua pelos valores corretos de rows e cols do mosaico
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            generateMosaicTable(rows, cols); // Substitua pelos valores corretos de rows e cols do mosaico
             modal.style.display = 'block';  // Exibe o modal
         }
 
