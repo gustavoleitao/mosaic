@@ -143,7 +143,6 @@
             <input type="number" id="weightDark" name="weights" value="1" min="0" max="1" step="0.1">
             <br>
 
-
             <br>
 
             <label for="useSubpattern">Usar Subpadrão:</label>
@@ -203,29 +202,18 @@
         };
 
         // Função para capturar os pesos das madeiras
-        // Função para capturar os pesos das madeiras somente das selecionadas
         function getWoodWeights() {
-            const woodWeights = [];
+            const weightOak = parseFloat(document.getElementById('weightOak').value);
+            const weightAsh = parseFloat(document.getElementById('weightAsh').value);
+            const weightCharred = parseFloat(document.getElementById('weightCharred').value);
+            const weightDark = parseFloat(document.getElementById('weightDark').value);
 
-            // Captura o peso e adiciona à lista apenas se o checkbox da textura estiver selecionado
-            if (document.getElementById('texture1').checked) {
-                const weightOak = parseFloat(document.getElementById('weightOak').value);
-                woodWeights.push({ name: 'Madeira de Carvalho', url: 'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg', weight: weightOak });
-            }
-            if (document.getElementById('texture2').checked) {
-                const weightAsh = parseFloat(document.getElementById('weightAsh').value);
-                woodWeights.push({ name: 'Madeira de Freixo', url: 'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg', weight: weightAsh });
-            }
-            if (document.getElementById('texture3').checked) {
-                const weightCharred = parseFloat(document.getElementById('weightCharred').value);
-                woodWeights.push({ name: 'Madeira Queimada', url: 'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg', weight: weightCharred });
-            }
-            if (document.getElementById('texture4').checked) {
-                const weightDark = parseFloat(document.getElementById('weightDark').value);
-                woodWeights.push({ name: 'Dark Stained Timber', url: 'https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg', weight: weightDark });
-            }
-
-            return woodWeights;  // Retorna apenas as madeiras selecionadas
+            return [
+                { name: 'Madeira de Carvalho', url: 'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg', weight: weightOak },
+                { name: 'Madeira de Freixo', url: 'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg', weight: weightAsh },
+                { name: 'Madeira Queimada', url: 'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg', weight: weightCharred },
+                { name: 'Dark Stained Timber', url: 'https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg', weight: weightDark }
+            ];
         }
 
         // Função para sortear madeira com base nos pesos
@@ -412,8 +400,8 @@
         function createMosaic(rows, cols, heights, textures, useSubpattern = false, subpatternSize = 2) {
             blockCount = {}; // Limpar a contagem de blocos
             currentMosaic = []; // Limpar o mapa atual
-            materialIds = {}; // Limpar IDs sequenciais de materiais
-            materialIdCounter = 1; // Inicializar o contador de IDs
+            let materialIds = {}; // Armazena os IDs sequenciais de cada tipo de material
+            let materialIdCounter = 1; // Inicializa o contador para os IDs
 
             // Remover todos os cubos antigos da cena
             while (scene.children.length > 0) {
@@ -438,21 +426,25 @@
                         const subRow = i % subpatternSize;
                         const subCol = j % subpatternSize;
                         const { height, texture } = subpattern[subRow][subCol];
-
                         cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
                     } else {
-                        // Gerar cubo usando a função que considera os pesos
-                        cube = getRandomWoodCube(cubeWidth, cubeDepth, heights);
-                        cube.position.set(j * (cubeWidth + gap), cube.position.y, i * (cubeDepth + gap));
-                        scene.add(cube);
+                        const height = randomFromValues(heights);
+                        const texture = randomFromValues(textures);
+                        cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
                     }
 
+                    const xPosition = j * (cubeWidth + gap);
+                    const zPosition = i * (cubeDepth + gap);
+                    cube.position.set(xPosition, cube.position.y, zPosition);
+                    scene.add(cube);
                 }
             }
 
-            // Ajusta a câmera para focar no mosaico
+            // Calcula o centro do mosaico
             const centerX = (cols * (cubeWidth + gap)) / 2;
             const centerZ = (rows * (cubeDepth + gap)) / 2;
+
+            // Ajusta o ponto de rotação da câmera para o centro do mosaico
             controls.target.set(centerX - (cubeWidth + gap) / 2, 0, centerZ - (cubeDepth + gap) / 2);
             controls.update();
 
@@ -463,9 +455,8 @@
             const distanceFactor = .5; // Fator para ajustar a distância da câmera
             camera.position.set(centerX, maxDimension * distanceFactor, centerZ + maxDimension * distanceFactor);
             camera.lookAt(centerX, 0, centerZ);
+
         }
-
-
 
         // Função de renderização
         function render() {
