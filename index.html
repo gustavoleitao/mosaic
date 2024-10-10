@@ -233,7 +233,10 @@
                 }
 
                 // Marcar o bloco no mosaico como removido
-                countBlock(mosaic[row][col].height, mosaic[row][col].texture, -1);
+                if (mosaic[row][col]){
+                    countBlock(mosaic[row][col].height, mosaic[row][col].texture, -1);
+                }
+                
                 mosaic[row][col] = null;
 
                 // Agora verifica os vizinhos que podem se tornar borda e aplica o teste recursivamente
