@@ -203,6 +203,7 @@
 
         const cache = {};
         let currentMosaic = [];
+        var actualMosaic =  {}
 
         let materialIds = {}; // Armazena os IDs sequenciais de cada tipo de material
         let materialIdCounter = 1; // Inicializa o contador para os IDs
@@ -232,6 +233,7 @@
                 }
 
                 // Marcar o bloco no mosaico como removido
+                countBlock(mosaic[row][col].height, mosaic[row][col].texture, -1);
                 mosaic[row][col] = null;
 
                 // Agora verifica os vizinhos que podem se tornar borda e aplica o teste recursivamente
@@ -242,7 +244,7 @@
             }
         }
 
-        function countBlock(height, texture) {
+        function countBlock(height, texture, value = 1) {
             const textureName = textureNames[texture] || 'Desconhecido';
             const key = `Altura: ${height}, Textura: ${textureName}`;
 
@@ -253,11 +255,13 @@
 
             // Conta o número de blocos de cada tipo
             if (blockCount[key]) {
-                blockCount[key]++;
+                blockCount[key] += value;
             } else {
                 blockCount[key] = 1;
             }
         }
+
+
         // Função para criar cubo com textura
         function cube(width = 1, height = 1, depth = 1, texture) {
             return textureCube(width, height, depth, texture);
@@ -305,7 +309,7 @@
             myCube.name = `cube-${row}-${col}`;
 
             currentMosaic.push({ row, col, height, texture });  // Salva o cubo no mapa
-            countBlock(height, texture);  // Conta o bloco
+            countBlock(height, texture, 1);  // Conta o bloco
             return myCube;
         }
 
@@ -340,7 +344,7 @@
             const mosaicTableDiv = document.getElementById('mosaicTable');
             mosaicTableDiv.innerHTML = ''; // Limpar o conteúdo anterior
 
-            if (currentMosaic.length === 0) {
+            if (actualMosaic.length === 0) {
                 mosaicTableDiv.innerHTML = '<p>Nenhum mosaico foi gerado ainda.</p>';
                 return;
             }
@@ -356,7 +360,12 @@
                     const textureName = textureNames[texture] || 'Desconhecido';
                     const key = `Altura: ${height}, Textura: ${textureName}`;
                     const materialId = materialIds[key]; // Pega o ID do material para essa célula
-                    table += `<td>${materialId}</td>`;
+                    if (actualMosaic[i][j] == null) {
+                        table += `<td>0</td>`;
+                    }else{
+                        table += `<td>${materialId}</td>`;
+                    }
+                    
                 }
                 table += '</tr>';
             }
@@ -580,13 +589,13 @@
             }
 
             // Criar o mosaico de cubos com os valores inseridos
-            const mosaic = createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
+            actualMosaic = createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
 
             if (useIrregularBorders) {
                 for (let row = 0; row < rows; row++) {
                     for (let col = 0; col < cols; col++) {
                         // Inicie o processo de remoção nas bordas
-                        removeEdges(mosaic, rows, cols, suppressionProbability, row, col);
+                        removeEdges(actualMosaic, rows, cols, suppressionProbability, row, col);
                     }
                 }
             }
@@ -594,7 +603,7 @@
         });
 
         // Gera a cena inicial ao carregar
-        createMosaic(10, 30, [0.5, 1, 1.5, 2], texturesPaths);
+        actualMosaic = createMosaic(10, 30, [0.5, 1, 1.5, 2], texturesPaths);
 
         // Função para exportar o mosaico como JSON
         document.getElementById('exportMap').addEventListener('click', function () {
