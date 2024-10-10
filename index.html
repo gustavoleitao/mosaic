@@ -4,10 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <title>Mosaico de Cubos</title>
     <style>
         body {
             margin: 0;
+            font-family: 'Roboto', sans-serif;
         }
 
         canvas {
@@ -33,12 +35,12 @@
 
         #blockTable {
             margin-top: 20px;
-            /* Adicionar espaço entre o conteúdo anterior e a tabela */
             clear: both;
             /* Garantir que a tabela fique abaixo de qualquer conteúdo flutuante */
         }
 
-        #generateTable {
+        button,
+        input[type=file] {
             margin-top: 5px;
             display: block;
         }
@@ -86,89 +88,81 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        input[type="number"] {
+            width: 40px;
+        }
+
+        h2 {
+            font-size: medium;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 
 <body>
     <div id="controls">
         <form id="cubeForm">
+
+            <h2>Tamanho do moisaco</h2>
             <label for="rows">Linhas:</label>
-            <input type="number" id="rows" name="rows" value="10" min="1"><br><br>
-
+            <input type="number" id="rows" name="rows" value="10" min="1">
             <label for="cols">Colunas:</label>
-            <input type="number" id="cols" name="cols" value="30" min="1"><br><br>
+            <input type="number" id="cols" name="cols" value="30" min="1">
 
-            <label>Selecione as Alturas:</label><br>
+            <h2>Tamanhos dos blocos</h2>
             <input type="checkbox" id="height1" name="heights" value="0.5" checked>
-            <label for="height1">0.5</label><br>
+            <label for="height1">0.5</label>
             <input type="checkbox" id="height2" name="heights" value="1" checked>
-            <label for="height2">1</label><br>
-            <input type="checkbox" id="height7" name="heights" value="1.5">
-            <label for="height7">1.5</label><br>
-            <input type="checkbox" id="height3" name="heights" value="2">
-            <label for="height3">2</label><br>
+            <label for="height2">1</label>
+            <input type="checkbox" id="height7" name="heights" value="1.5" checked>
+            <label for="height7">1.5</label>
+            <input type="checkbox" id="height3" name="heights" value="2" checked>
+            <label for="height3">2</label>
             <input type="checkbox" id="height8" name="heights" value="2.5">
-            <label for="height8">2.5</label><br>
+            <label for="height8">2.5</label>
             <input type="checkbox" id="height4" name="heights" value="3">
-            <label for="height4">3</label><br>
+            <label for="height4">3</label>
             <input type="checkbox" id="height5" name="heights" value="4">
-            <label for="height5">4</label><br>
+            <label for="height5">4</label>
             <input type="checkbox" id="height6" name="heights" value="5">
-            <label for="height6">5</label><br><br>
+            <label for="height6">5</label>
 
-            <label>Selecione as Texturas:</label><br>
-
-
+            <h2>Madeiras</h2>
             <input type="checkbox" id="texture1" name="textures"
                 value="https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg" checked>
-            <label for="texture1">Madeira de Carvalho</label>
-            <input type="number" id="weightOak" name="weights" value="1" min="0" max="1" step="0.1">
-            <br>
-
+            <label for="texture1">Madeira de Pinus</label><br>
             <input type="checkbox" id="texture2" name="textures"
-                value="https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg">
-            <label for="texture2">Madeira de Freixo</label>
-            <input type="number" id="weightAsh" name="weights" value="1" min="0" max="1" step="0.1">
-            <br>
-
+                value="https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg" checked>
+            <label for="texture2">Madeira de Freixo</label><br>
             <input type="checkbox" id="texture3" name="textures"
-                value="https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg">
-            <label for="texture3">Madeira Queimada</label>
-            <input type="number" id="weightCharred" name="weights" value="1" min="0" max="1" step="0.1">
-            <br>
-
+                value="https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg" checked>
+            <label for="texture3">Madeira Queimada</label><br>
             <input type="checkbox" id="texture4" name="textures"
-                value="https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg">
+                value="https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg" checked>
             <label for="texture4">Dark Stained Timber</label>
-            <input type="number" id="weightDark" name="weights" value="1" min="0" max="1" step="0.1">
-            <br>
 
-
-            <br>
-
+            <h2>Subpadrões</h2>
             <label for="useSubpattern">Usar Subpadrão:</label>
-            <input type="checkbox" id="useSubpattern" name="useSubpattern"><br><br>
+            <input type="checkbox" id="useSubpattern" name="useSubpattern">
 
             <label for="subpatternSize">Tamanho do Subpadrão:</label>
-            <input type="number" id="subpatternSize" name="subpatternSize" value="2" min="1" disabled><br><br>
+            <input type="number" id="subpatternSize" name="subpatternSize" value="2" min="1" disabled><br>
+
+            <hr>
 
             <button type="submit">Gerar Mosaico</button>
 
         </form>
 
-
-        <button id="exportMap">Exportar Mapa (JSON)</button><br><br>
-        <input type="file" id="importMap" accept=".json">
-
-
     </div>
     <div id="showHide">
         <button id="togglePanel">Esconder Controles</button>
         <button id="generateTable">Gerar Tabela de Cubos</button>
+        <button id="exportMap">Exportar</button>
+        <input type="file" id="importMap" accept=".json">
     </div>
-
-
-
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -192,72 +186,16 @@
 
         let materialIds = {}; // Armazena os IDs sequenciais de cada tipo de material
         let materialIdCounter = 1; // Inicializa o contador para os IDs
-
         let blockCount = {};  // Armazena a quantidade de cada tipo de cubo
 
         const textureNames = {
-            'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg': 'Madeira de Carvalho',
+            'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg': 'Madeira de Pinus',
             'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg': 'Madeira de Freixo',
             'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg': 'Madeira Queimada',
             'https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg': 'Dark Stained Timber'
         };
 
-        // Função para capturar os pesos das madeiras
-        // Função para capturar os pesos das madeiras somente das selecionadas
-        function getWoodWeights() {
-            const woodWeights = [];
-
-            // Captura o peso e adiciona à lista apenas se o checkbox da textura estiver selecionado
-            if (document.getElementById('texture1').checked) {
-                const weightOak = parseFloat(document.getElementById('weightOak').value);
-                woodWeights.push({ name: 'Madeira de Carvalho', url: 'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg', weight: weightOak });
-            }
-            if (document.getElementById('texture2').checked) {
-                const weightAsh = parseFloat(document.getElementById('weightAsh').value);
-                woodWeights.push({ name: 'Madeira de Freixo', url: 'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg', weight: weightAsh });
-            }
-            if (document.getElementById('texture3').checked) {
-                const weightCharred = parseFloat(document.getElementById('weightCharred').value);
-                woodWeights.push({ name: 'Madeira Queimada', url: 'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg', weight: weightCharred });
-            }
-            if (document.getElementById('texture4').checked) {
-                const weightDark = parseFloat(document.getElementById('weightDark').value);
-                woodWeights.push({ name: 'Dark Stained Timber', url: 'https://cdn.architextures.org/textures/20/11/dark-stained-timber-5fc4cb107f98c-1200.jpg', weight: weightDark });
-            }
-
-            return woodWeights;  // Retorna apenas as madeiras selecionadas
-        }
-
-        // Função para sortear madeira com base nos pesos
-        function weightedRandom(weights) {
-            const totalWeight = weights.reduce((total, item) => total + item.weight, 0);
-            let random = Math.random() * totalWeight;
-
-            for (let i = 0; i < weights.length; i++) {
-                if (random < weights[i].weight) {
-                    return weights[i].url;  // Retorna a URL da madeira sorteada
-                }
-                random -= weights[i].weight;
-            }
-        }
-
-        // Função para criar cubo de madeira aleatória com altura aleatória
-        function getRandomWoodCube(width, depth, heights) {
-            const height = randomFromValues(heights); // Sorteia a altura
-            const randomTexture = getRandomWoodTexture(); // Sorteia a textura com base nos pesos
-            const myCube = cube(width, height, depth, randomTexture);
-
-            // Posicionar o cubo de modo que sua base fique em Y=0 (plano de base)
-            myCube.position.y = height / 2;  // Ajusta para que a base do cubo fique alinhada no eixo Y
-
-            return myCube;
-        }
-
-        // Função para obter madeira sorteada com base nos pesos
-        function getRandomWoodTexture() {
-            const woodWeights = getWoodWeights();
-            return weightedRandom(woodWeights);
-        }
+        const texturesPaths = Object.keys(textureNames);
 
         function countBlock(height, texture) {
             const textureName = textureNames[texture] || 'Desconhecido';
@@ -412,8 +350,8 @@
         function createMosaic(rows, cols, heights, textures, useSubpattern = false, subpatternSize = 2) {
             blockCount = {}; // Limpar a contagem de blocos
             currentMosaic = []; // Limpar o mapa atual
-            materialIds = {}; // Limpar IDs sequenciais de materiais
-            materialIdCounter = 1; // Inicializar o contador de IDs
+            materialIds = {}; // Armazena os IDs sequenciais de cada tipo de material
+            materialIdCounter = 1; // Inicializa o contador para os IDs
 
             // Remover todos os cubos antigos da cena
             while (scene.children.length > 0) {
@@ -441,18 +379,23 @@
 
                         cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
                     } else {
-                        // Gerar cubo usando a função que considera os pesos
-                        cube = getRandomWoodCube(cubeWidth, cubeDepth, heights);
-                        cube.position.set(j * (cubeWidth + gap), cube.position.y, i * (cubeDepth + gap));
-                        scene.add(cube);
+                        const height = randomFromValues(heights);
+                        const texture = randomFromValues(textures);
+                        cube = createWoodCube(cubeWidth, cubeDepth, height, texture, i, j);
                     }
 
+                    const xPosition = j * (cubeWidth + gap);
+                    const zPosition = i * (cubeDepth + gap);
+                    cube.position.set(xPosition, cube.position.y, zPosition);
+                    scene.add(cube);
                 }
             }
 
-            // Ajusta a câmera para focar no mosaico
+            // Calcula o centro do mosaico
             const centerX = (cols * (cubeWidth + gap)) / 2;
             const centerZ = (rows * (cubeDepth + gap)) / 2;
+
+            // Ajusta o ponto de rotação da câmera para o centro do mosaico
             controls.target.set(centerX - (cubeWidth + gap) / 2, 0, centerZ - (cubeDepth + gap) / 2);
             controls.update();
 
@@ -463,9 +406,8 @@
             const distanceFactor = .5; // Fator para ajustar a distância da câmera
             camera.position.set(centerX, maxDimension * distanceFactor, centerZ + maxDimension * distanceFactor);
             camera.lookAt(centerX, 0, centerZ);
+
         }
-
-
 
         // Função de renderização
         function render() {
@@ -528,16 +470,11 @@
             // Criar o mosaico de cubos com os valores inseridos
             createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
 
-
-
         });
 
         // Gera a cena inicial ao carregar
-        createMosaic(10, 30, [0.5, 1], [
-            'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg',
-            'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg',
-            'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg'
-        ]);
+        createMosaic(10, 30, [0.5, 1, 1.5, 2], texturesPaths);
+
 
         // Função para exportar o mosaico como JSON
         document.getElementById('exportMap').addEventListener('click', function () {
