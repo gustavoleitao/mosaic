@@ -1,12 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mosaico de Cubos</title>
     <style>
-        body { margin: 0; }
-        canvas { display: block; }
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            display: block;
+        }
+
         #controls {
             position: absolute;
             top: 10px;
@@ -23,17 +30,74 @@
             right: 10px;
             z-index: 1;
         }
+
+        #blockTable {
+            margin-top: 20px;
+            /* Adicionar espaço entre o conteúdo anterior e a tabela */
+            clear: both;
+            /* Garantir que a tabela fique abaixo de qualquer conteúdo flutuante */
+        }
+
+        #generateTable {
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* O modal (fica escondido por padrão) */
+        .modal {
+            display: none;
+            /* Escondido por padrão */
+            position: fixed;
+            /* Fica fixo na tela */
+            z-index: 1;
+            /* Fica sobre o conteúdo */
+            left: 0;
+            top: 0;
+            width: 100%;
+            /* Largura total */
+            height: 100%;
+            /* Altura total */
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Fundo preto transparente */
+        }
+
+        /* Conteúdo do modal */
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            /* Centralizado verticalmente */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 100%;
+            /* Largura do modal */
+        }
+
+        /* Botão de fechar */
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
+
 <body>
     <div id="controls">
         <form id="cubeForm">
             <label for="rows">Linhas:</label>
             <input type="number" id="rows" name="rows" value="10" min="1"><br><br>
-            
+
             <label for="cols">Colunas:</label>
             <input type="number" id="cols" name="cols" value="30" min="1"><br><br>
-            
+
             <label>Selecione as Alturas:</label><br>
             <input type="checkbox" id="height1" name="heights" value="0.5" checked>
             <label for="height1">0.5</label><br>
@@ -47,13 +111,16 @@
             <label for="height5">4</label><br>
             <input type="checkbox" id="height6" name="heights" value="5">
             <label for="height6">5</label><br><br>
-            
+
             <label>Selecione as Texturas:</label><br>
-            <input type="checkbox" id="texture1" name="textures" value="https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg" checked>
+            <input type="checkbox" id="texture1" name="textures"
+                value="https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg" checked>
             <label for="texture1">Madeira de Carvalho</label><br>
-            <input type="checkbox" id="texture2" name="textures" value="https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg">
+            <input type="checkbox" id="texture2" name="textures"
+                value="https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg">
             <label for="texture2">Madeira de Freixo</label><br>
-            <input type="checkbox" id="texture3" name="textures" value="https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg">
+            <input type="checkbox" id="texture3" name="textures"
+                value="https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg">
             <label for="texture3">Madeira Queimada</label><br><br>
 
             <label for="useSubpattern">Usar Subpadrão:</label>
@@ -61,30 +128,33 @@
 
             <label for="subpatternSize">Tamanho do Subpadrão:</label>
             <input type="number" id="subpatternSize" name="subpatternSize" value="2" min="1" disabled><br><br>
-            
+
             <button type="submit">Gerar Mosaico</button>
-            
+
         </form>
 
 
         <button id="exportMap">Exportar Mapa (JSON)</button><br><br>
         <input type="file" id="importMap" accept=".json">
 
-      
+
     </div>
-    <div id="showHide"> 
+    <div id="showHide">
         <button id="togglePanel">Esconder Controles</button>
+        <button id="generateTable">Gerar Tabela de Cubos</button>
     </div>
-    
+
+
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script>
 
-    const controlPanel = document.getElementById('controls');
+        const controlPanel = document.getElementById('controls');
         const toggleButton = document.getElementById('togglePanel');
-        
-        toggleButton.addEventListener('click', function() {
+
+        toggleButton.addEventListener('click', function () {
             if (controlPanel.style.display === 'none') {
                 controlPanel.style.display = 'block';
                 toggleButton.textContent = 'Esconder Controles';
@@ -97,20 +167,47 @@
         const cache = {};
         let currentMosaic = [];
 
+        let materialIds = {}; // Armazena os IDs sequenciais de cada tipo de material
+        let materialIdCounter = 1; // Inicializa o contador para os IDs
+
+        let blockCount = {};  // Armazena a quantidade de cada tipo de cubo
+
+        const textureNames = {
+            'https://cdn.architextures.org/textures/20/11/oak-5fc4cb29cb8cc-1200.jpg': 'Madeira de Carvalho',
+            'https://cdn.architextures.org/textures/20/11/ash-5fc4cb2f0d6d2-1200.jpg': 'Madeira de Freixo',
+            'https://cdn.architextures.org/textures/20/11/charred-timber-5fc4cb0884792-1200.jpg': 'Madeira Queimada'
+        };
+
+        function countBlock(height, texture) {
+            const textureName = textureNames[texture] || 'Desconhecido';
+            const key = `Altura: ${height}, Textura: ${textureName}`;
+
+            // Verifica se o tipo de material já tem um ID; caso contrário, atribui um novo ID sequencial
+            if (!materialIds[key]) {
+                materialIds[key] = materialIdCounter++;
+            }
+
+            // Conta o número de blocos de cada tipo
+            if (blockCount[key]) {
+                blockCount[key]++;
+            } else {
+                blockCount[key] = 1;
+            }
+        }
         // Função para criar cubo com textura
-        function cube(width=1, height=1, depth=1, texture){
+        function cube(width = 1, height = 1, depth = 1, texture) {
             return textureCube(width, height, depth, texture);
         }
 
         // Função para criar cubo com material
-        function materialCube(width=1, height=1, depth=1, material){
+        function materialCube(width = 1, height = 1, depth = 1, material) {
             const geometry = new THREE.BoxGeometry(width, height, depth);
             const cube = new THREE.Mesh(geometry, material);
             return cube;
         }
 
         // Função para pegar textura em cache ou carregar
-        function getTexture(path){
+        function getTexture(path) {
             if (cache[path]) {
                 return cache[path];
             } else {
@@ -122,13 +219,13 @@
         }
 
         // Função para criar cubo com textura
-        function textureCube(width=1, height=1, depth=1, path){
+        function textureCube(width = 1, height = 1, depth = 1, path) {
             const material = new THREE.MeshBasicMaterial({ map: getTexture(path) });
             return materialCube(width, height, depth, material);
         }
 
         // Função auxiliar para selecionar valor aleatório de uma lista
-        function randomFromValues(values){
+        function randomFromValues(values) {
             const randomIndex = Math.floor(Math.random() * values.length);
             return values[randomIndex];
         }
@@ -141,8 +238,66 @@
             myCube.position.y = height / 2;  // Ajusta para que a base do cubo fique alinhada no eixo Y
 
             currentMosaic.push({ row, col, height, texture }); // Salva o cubo no mapa
-
+            countBlock(height, texture);  // Conta o bloco
             return myCube;
+        }
+
+        // Função para gerar a tabela de materiais
+        function generateBlockTable() {
+            const blockTableDiv = document.getElementById('blockTable');
+            blockTableDiv.innerHTML = ''; // Limpar o conteúdo anterior
+
+            if (Object.keys(blockCount).length === 0) {
+                blockTableDiv.innerHTML = '<p>Nenhum cubo foi gerado ainda.</p>';
+                return;
+            }
+
+            // Criar a tabela de materiais
+            let table = '<table border="1"><tr><th>ID</th><th>Altura</th><th>Madeira</th><th>Quantidade</th></tr>';
+
+            // Adicionar linhas para cada tipo de cubo
+            for (const key in blockCount) {
+                const [altura, textura] = key.split(', ');
+                const materialId = materialIds[key]; // Pega o ID do material
+                table += `<tr><td>${materialId}</td><td>${altura.split(': ')[1]}</td><td>${textura.split(': ')[1]}</td><td>${blockCount[key]}</td></tr>`;
+            }
+
+            table += '</table>';
+
+            // Exibir a tabela de materiais no div
+            blockTableDiv.innerHTML = table;
+        }
+
+        // Função para gerar a tabela do mosaico
+        function generateMosaicTable(rows, cols) {
+            const mosaicTableDiv = document.getElementById('mosaicTable');
+            mosaicTableDiv.innerHTML = ''; // Limpar o conteúdo anterior
+
+            if (currentMosaic.length === 0) {
+                mosaicTableDiv.innerHTML = '<p>Nenhum mosaico foi gerado ainda.</p>';
+                return;
+            }
+
+            // Criar a tabela do mosaico
+            let table = '<table border="1">';
+
+            // Percorrer as linhas e colunas do mosaico
+            for (let i = 0; i < rows; i++) {
+                table += '<tr>';
+                for (let j = 0; j < cols; j++) {
+                    const { height, texture } = currentMosaic.find(cube => cube.row === i && cube.col === j);
+                    const textureName = textureNames[texture] || 'Desconhecido';
+                    const key = `Altura: ${height}, Textura: ${textureName}`;
+                    const materialId = materialIds[key]; // Pega o ID do material para essa célula
+                    table += `<td>${materialId}</td>`;
+                }
+                table += '</tr>';
+            }
+
+            table += '</table>';
+
+            // Exibir a tabela do mosaico no div
+            mosaicTableDiv.innerHTML = table;
         }
 
         // Configuração da cena e câmera
@@ -174,11 +329,12 @@
 
         // Função para criar a malha de cubos com base nas entradas do usuário
         function createMosaic(rows, cols, heights, textures, useSubpattern = false, subpatternSize = 2) {
+            blockCount = {}; // Limpar a contagem de blocos
             currentMosaic = []; // Limpar o mapa atual
 
             // Remover todos os cubos antigos da cena
-            while(scene.children.length > 0){ 
-                scene.remove(scene.children[0]); 
+            while (scene.children.length > 0) {
+                scene.remove(scene.children[0]);
             }
 
             const cubeWidth = 1;
@@ -251,13 +407,13 @@
         });
 
         // Habilitar ou desabilitar o campo de tamanho do subpadrão
-        document.getElementById('useSubpattern').addEventListener('change', function() {
+        document.getElementById('useSubpattern').addEventListener('change', function () {
             const subpatternSizeInput = document.getElementById('subpatternSize');
             subpatternSizeInput.disabled = !this.checked;
         });
 
         // Função para processar o formulário
-        document.getElementById('cubeForm').addEventListener('submit', function(event) {
+        document.getElementById('cubeForm').addEventListener('submit', function (event) {
             event.preventDefault();  // Impedir o envio padrão do formulário
 
             // Capturar os valores do formulário
@@ -293,7 +449,7 @@
             // Criar o mosaico de cubos com os valores inseridos
             createMosaic(rows, cols, selectedHeights, selectedTextures, useSubpattern, subpatternSize);
 
-      
+
 
         });
 
@@ -305,7 +461,7 @@
         ]);
 
         // Função para exportar o mosaico como JSON
-        document.getElementById('exportMap').addEventListener('click', function() {
+        document.getElementById('exportMap').addEventListener('click', function () {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentMosaic, null, 2));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
@@ -316,11 +472,11 @@
         });
 
         // Função para importar um mapa de mosaico a partir de um JSON
-        document.getElementById('importMap').addEventListener('change', function(event) {
+        document.getElementById('importMap').addEventListener('change', function (event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     const jsonData = JSON.parse(e.target.result);
                     importMosaic(jsonData);
                 };
@@ -328,13 +484,17 @@
             }
         });
 
+        document.getElementById('generateTable').addEventListener('click', generateBlockTable);
+
+
+
         // Função para importar e criar a cena a partir de um mapa (JSON)
         function importMosaic(mosaicMap) {
             currentMosaic = mosaicMap; // Atualiza o mosaico atual com o importado
 
             // Limpar a cena
-            while(scene.children.length > 0){ 
-                scene.remove(scene.children[0]); 
+            while (scene.children.length > 0) {
+                scene.remove(scene.children[0]);
             }
 
             const cubeWidth = 1;
@@ -353,6 +513,50 @@
             camera.lookAt(0, 0, 0);
         }
 
+
+    </script>
+
+    <!-- Modal para exibir a tabela -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Tabela de Materiais</h2>
+            <div id="blockTable"></div> <!-- A tabela de materiais será gerada aqui -->
+
+            <h2>Tabela do Mosaico</h2>
+            <div id="mosaicTable"></div> <!-- A tabela do mosaico será gerada aqui -->
+        </div>
+    </div>
+
+    <script>
+
+
+        // Controle do modal
+        // Controle do modal
+        const modal = document.getElementById('myModal');
+        const btn = document.getElementById('generateTable');
+        const span = document.getElementsByClassName('close')[0];
+
+        // Quando o usuário clica no botão, abre o modal
+        btn.onclick = function () {
+            generateBlockTable();  // Gera a tabela de materiais
+            generateMosaicTable(10, 30); // Substitua pelos valores corretos de rows e cols do mosaico
+            modal.style.display = 'block';  // Exibe o modal
+        }
+
+        // Quando o usuário clica no "X", fecha o modal
+        span.onclick = function () {
+            modal.style.display = 'none';
+        }
+
+        // Quando o usuário clica fora do modal, fecha o modal
+        window.onclick = function (event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
     </script>
 </body>
+
 </html>
