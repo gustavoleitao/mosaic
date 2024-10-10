@@ -503,9 +503,9 @@
 
             // Adicionar cubos a partir do mapa importado
             mosaicMap.forEach(cubeData => {
-                const cube = cube(cubeWidth, cubeData.height, cubeDepth, cubeData.texture);
-                cube.position.set(cubeData.col * (cubeWidth + gap), cubeData.height / 2, cubeData.row * (cubeDepth + gap));
-                scene.add(cube);
+                const myCube = cube(cubeWidth, cubeData.height, cubeDepth, cubeData.texture);
+                myCube.position.set(cubeData.col * (cubeWidth + gap), cubeData.height / 2, cubeData.row * (cubeDepth + gap));
+                scene.add(myCube);
             });
 
             // Reposicionar a câmera
